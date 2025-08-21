@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>성경 퀴즈</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        #answer-buttons button, #short-answer-area button {
+            transform-style: preserve-3d;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 flex items-center justify-center min-h-screen py-8">
+
+    <div id="app" class="w-full max-w-2xl mx-auto p-4 sm:p-6">
+        <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 text-center transition-all duration-500">
+            
+            <!-- 시작 화면 -->
+            <div id="start-screen">
+                <h1 class="text-3xl sm:text-4xl font-bold text-slate-800 mb-4">안수집사 권사 예상문제</h1>
+                <p class="text-slate-600 mb-8">분야를 선택하여 퀴즈를 시작하세요.</p>
+                <div id="category-selection" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button data-category="oldTestament" class="category-btn w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition-transform transform hover:scale-105">구약</button>
+                    <button data-category="newTestament" class="category-btn w-full bg-teal-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-300 transition-transform transform hover:scale-105">신약</button>
+                    <button data-category="doctrine" class="category-btn w-full bg-amber-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-300 transition-transform transform hover:scale-105">기독교 교리</button>
+                    <button data-category="churchHistory" class="category-btn w-full bg-rose-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-rose-700 focus:outline-none focus:ring-4 focus:ring-rose-300 transition-transform transform hover:scale-105">교회사</button>
+                </div>
+            </div>
+
+            <!-- 퀴즈 화면 -->
+            <div id="quiz-screen" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <button id="back-to-menu" class="text-sm font-semibold text-slate-500 hover:text-indigo-600">&lt; 메뉴로</button>
+                    </div>
+                    <p id="question-counter" class="text-sm font-semibold text-slate-500"></p>
+                    <p id="score-display" class="text-sm font-semibold text-slate-500">점수: 0</p>
+                </div>
+                <div id="question-container" class="mb-6">
+                    <h2 id="question-text" class="text-xl sm:text-2xl font-bold text-slate-800 min-h-[8rem] flex items-center justify-center"></h2>
+                </div>
+                <div id="answer-buttons" class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"></div>
+                <div id="short-answer-area" class="mt-4"></div>
+                <div class="mt-8">
+                    <button id="next-button" class="w-full bg-slate-800 text-white font-bold py-3 px-6 rounded-lg hover:bg-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-300 transition-transform transform hover:scale-105 hidden">다음 문제</button>
+                </div>
+            </div>
+
+            <!-- 결과 화면 -->
+            <div id="result-screen" class="hidden">
+                <h2 class="text-3xl sm:text-4xl font-bold text-slate-800 mb-4">퀴즈 완료!</h2>
+                <p id="final-score" class="text-xl text-slate-600 mb-8"></p>
+                <button id="restart-button" class="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition-transform transform hover:scale-105">다른 분야 풀기</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const allQuizData = {
+            oldTestament: [
+                // 구약 주관식
+                { type: 'short-answer', question: "구약은 크게 모세오경, 역사서, 시가서, 예언서로 구분할 수 있습니다. 각 권을 아래의 보기 중, 가장 어울리는 주제와 연결하세요. (보기: ㄱ. 하나님의 행동 ㄴ. 하나님의 말씀 ㄷ. 이스라엘(사람)의 응답)", answer: "모세오경: ㄱ, 역사서: ㄱ, 시가서: ㄷ, 예언서: ㄴ" },
+                { type: 'short-answer', question: "창세기 1장 1절을 기록하세요.", answer: "태초에 하나님이 천지를 창조하시니라" },
+                { type: 'short-answer', question: "성경은 인간이 하나님의 형상으로 만들어진 존재임을 말합니다. 이것이 의미하는 바를 두 가지 이상 기록하세요.", answer: "(1) 인간의 존귀성 (2) 인간의 평등성 (3) 하나님의 대리 통치성 (4) 하나님과 영적 교제의 가능성" },
+                { type: 'short-answer', question: "선악과를 먹은 결과 파괴된 인간의 네 가지 관계를 기록하세요. (창 3:7,8,12,17)", answer: "자신과의 관계, 이웃과의 관계, 하나님과의 관계, 세상과의 관계" },
+                { type: 'short-answer', question: "노아의 때, 하나님은 어떠한 이유로 한탄하셨습니까? (창 6:5)", answer: "사람이 생각하는 모든 계획이 악함을 보셨기 때문" },
+                { type: 'short-answer', question: "바벨탑 사건에서 인간의 어떠한 면이 가장 선연히 드러납니까?", answer: "인간의 교만함" },
+                { type: 'short-answer', question: "하나님께서 아브라함에게 고향과 친척과 아버지의 집을 떠나 가라며 주신 약속의 내용은 무엇입니까?", answer: "1) 땅의 약속 2) 후손(민족)의 약속 3) 복의 근원의 약속" },
+                { type: 'short-answer', question: "하나님께서 아브라함을 의로 여기신 이유는 무엇입니까? (창 15:6)", answer: "여호와를 믿음" },
+                { type: 'short-answer', question: "야곱은 형 에서를 피하여 브엘세바에서 하란으로 향합니다. 여정 중 돌베개를 가져다가 기둥을 세운 곳의 이름은 무엇입니까? (창 28)", answer: "벧엘" },
+                { type: 'short-answer', question: "에서와의 재회를 앞둔 밤, 하나님의 사자와 씨름을 한 야곱은 새 이름을 얻습니다. 그 이름과 뜻은 무엇입니까? (창 32:28)", answer: "이스라엘, 하나님과 및 사람들과 겨루어 이겼다." },
+                { type: 'short-answer', question: "출애굽기의 전체 여정을 세 단락으로 구분해 보세요", answer: "애굽에서 홍해로, 홍해에서 시내산으로, 시내산에서의 거주" },
+                { type: 'short-answer', question: "당신의 이름을 '나는 곧 나다'라고 말씀하시는 하나님은 어떤 분이십니까?", answer: "예측할 수 없는 하나님, 매일매일에 새롭게 경험하는 하나님, 움직이시는 하나님" },
+                { type: 'short-answer', question: "이집트에서의 일어난 열 번의 기적은 우리에게 어떤 의미입니까?", answer: "하나님께서 개입하신다. 거짓 신들에 대한 하나님의 승리, 여호와만이 참 하나님" },
+                { type: 'short-answer', question: "유월절의 유래는 무엇입니까? (출 13:4-10)", answer: "양의 피를 문설주에 발라 장자들의 목숨이 끊어지는 재앙을 넘김" },
+                { type: 'short-answer', question: "이스라엘의 3대 명절은 무엇입니까?", answer: "유월절(무교절), 맥추절(칠칠절, 오순절), 초막절(장막절)" },
+                { type: 'short-answer', question: "제사장이 되려면 어느 지파의 자손이어야 되며, 대제사장은 누구의 자손이어야 합니까?", answer: "레위 지파, 아론의 자손" },
+                { type: 'short-answer', question: "출애굽기 25장 8절에 따르면, 성막은 어떠한 장소입니까?", answer: "하나님과 이스라엘 백성이 만나는 장소" },
+                { type: 'short-answer', question: "출애굽의 목적이 예배하는 공동체에 있었다면, 레위기는 우리에게 무엇을 말해줍니까?", answer: "예배하는 방법, 예배의 신앙" },
+                { type: 'short-answer', question: "대속죄일의 세 가지 주요 요소는 무엇입니까? (레 16)", answer: "특별한 속죄제물, 속죄양 의식, 금식" },
+                { type: 'short-answer', question: "다음 ()안에 공통적으로 들어갈 말은 무엇입니까? (레 17) 생명이 ()안에 있으므로 ()가 죄를 속하느니라", answer: "피" },
+                { type: 'short-answer', question: "레위기 17-26장은 소위 성결법전이라 불리는데, 이 법전을 아우르는 하나님의 명령은 무엇입니까? (레 19:2)", answer: "너희는 거룩하라 이는 나 여호와 너희 하나님이 거룩함이니라" },
+                { type: 'short-answer', question: "자신의 무능력이나 외적인 재난으로 인해 무너진 인생들에게 구제와 회복의 기회를 제공하는 구약의 제도는 무엇입니까? (레 25)", answer: "희년" },
+                { type: 'short-answer', question: "신명기의 으뜸 구절로 꼽히는 신명기 6:4-5를 암송해 보세요.", answer: "이스라엘아 들으라 우리 하나님 여호와는 오직 유일한 하나님이시니 너는 마음을 다하고 뜻을 다하고 힘을 다하여 네 하나님 여호와를 사랑하라" },
+                { type: 'short-answer', question: "신명기의 전체적인 주제는 무엇입니까? (신 6)", answer: "여호와께서 이스라엘 백성들에게 주신 은혜에 대한 반응으로서 약속의 땅에서 신실하게 살아가는 것" },
+                { type: 'short-answer', question: "이스라엘은 무엇으로 인해 하나님의 택함을 받았습니까?", answer: "아무것도 없다. 하나님이 사랑이 그들을 택하셨다" },
+                { type: 'short-answer', question: "3년마다 소산의 십일조를 거두어서 누구에게 주어야 했습니까? (신 14)", answer: "분깃이나 기업이 없는 레위인, 성중에 거류하는 객, 고아, 과부" },
+                { type: 'short-answer', question: "신명기 24장은 사회적 약자를 위한 어떤 계명을 담지합니까?", answer: "이삭 남기기" },
+                { type: 'short-answer', question: "구약성경에만 있는 독특한 제도로 부지 중에 살인한 자가 도피할 수 있도록 제공되는 처소를 무엇이라 부릅니까?", answer: "도피성" },
+                { type: 'short-answer', question: "사사기의 본문 전체를 아우르는 구절은 무엇입니까?", answer: "삿 21:25 / 그 때에 이스라엘에 왕이 없었음으로 사람이 각기 자기의 소견에 옳은 대로 행하였더라" },
+                { type: 'short-answer', question: "사사들의 이름을 아는 대로 기록하세요. (4명 이상)", answer: "옷니엘, 에훗, 삼갈, 바락, 돌라, 야일, 입다, 입산, 엘론, 압돈, 기드온, 드보라, 삼손" },
+                { type: 'short-answer', question: "룻과 혼인한 보아스는 계보 상 다윗과 어떤 관계입니까? (룻 4)", answer: "증조부" },
+                { type: 'short-answer', question: "에벤에셀이란 무슨 뜻입니까? (삼상 7)", answer: "여호와께서 여기까지 우리를 도우셨다" },
+                { type: 'short-answer', question: "백성이 하나님께 자신들의 왕을 요구함이 잘못된 이유는 무엇입니까?", answer: "하나님만이 진정한 의미에서 이스라엘 백성의 왕이 되시기 때문" },
+                { type: 'short-answer', question: "사무엘상 15장과 16장에서 알 수 있는 사람을 택하는 하나님의 기준은 무엇입니까?", answer: "그 사람의 중심" },
+                { type: 'short-answer', question: "사울의 폭정을 피하여 다윗이 유랑자들과 숨었던 굴의 이름은 무엇입니까? (삼상 22)", answer: "아둘람" },
+                { type: 'short-answer', question: "열왕기는 어느 왕부터 어느 왕에까지 이르는 사적입니까?", answer: "솔로몬으로 시작하여 이스라엘의 왕 호세아, 유다 왕 시드기야까지" },
+                { type: 'short-answer', question: "선한 왕과 악한 왕의 표준은 무엇입니까?", answer: "하나님 앞에서 어떻게 살았으며, 어떤 정치를 하였는가에 따라 구별됨" },
+                { type: 'short-answer', question: "왕위 말년의 솔로몬의 실책은 무엇입니까? (왕상 11)", answer: "여호와가 아닌 다른 신들을 섬김" },
+                { type: 'short-answer', question: "호렙 산에서 혼자 남았음에 절망하던 엘리야에게 하나님은 어떤 말씀을 하십니까? (왕상 19:18)", answer: "바알에게 무릎 꿇지 않은 7천명을 남겨두심" },
+                { type: 'short-answer', question: "북왕국 이스라엘 최후의 왕은 누구며 어느 나라에게 멸망했습니까? (왕하 17)", answer: "호세아, 앗수르" },
+                { type: 'short-answer', question: "유다에서 우상과 놋뱀을 제거하였고, 정직하게 행하며, 유다의 왕들 중 전무후무한 선왕이지 계명을 잘 준수했던 왕은 누구입니까? (왕하 18)", answer: "히스기야" },
+                { type: 'short-answer', question: "요시야 왕 때 여호와의 성전을 수리하다가 무슨 책을 발견했으며(왕하 22), 그가 한 종교개혁의 주요골자는 무엇입니까(왕하23)?", answer: "율법책 / 성전의 수리, 율법책 낭독과 회개운동, 우상타파, 유월절 준수" },
+                { type: 'short-answer', question: "남유다 최후의 왕은 누구이며, 어느 나라에게 멸망당했습니까? (왕하 25)", answer: "시드기야, 바벨론" },
+                { type: 'short-answer', question: "포로 귀환 이후, 북쪽의 사마리아 사람들이 남쪽의 유대 사람들로부터 이방인 취급을 받는 이유는 무엇입니까? (왕하 17장)", answer: "앗수르의 이민 정책에 따라 잡혼을 했기 때문" },
+                { type: 'short-answer', question: "예루살렘성과 성문을 재건한 사람은 누구입니까?", answer: "느헤미야" },
+                { type: 'short-answer', question: "욥의 고난 앞에, 욥의 친구들은 어떤 원리를 전제로 욥과 논쟁을 벌입니까?", answer: "인과응보의 원리" },
+                { type: 'short-answer', question: "하나님과 논쟁을 통해 욥은 무엇을 깨닫습니까?", answer: "인간 중심적인 세계관에서 창조주의 시각으로 바라보는 우주 중심적 세계관" },
+                { type: 'short-answer', question: "시편 1편은 복 있는 사람을 어떻게 정의합니까?", answer: "여호와의 율법을 즐거워하며, 이를 주야로 묵상하는 자" },
+                { type: 'short-answer', question: "잠언 1장은 무엇이 지식의 근본이라 선포합니까?", answer: "여호와를 경외하는 것" },
+                { type: 'short-answer', question: "잠언 3장은 여호와를 경외하는 것을 어떻게 해설합니까?", answer: "범사에 여호와를 인정하는 것이 여호와를 경외함이다" },
+                { type: 'short-answer', question: "예언서의 '예언'이란 어떤 의미입니까?", answer: "미래를 점치는 것이 아닌 하나님께서 맡기신 말씀을 전달하는 것" },
+                { type: 'short-answer', question: "이사야 1장을 통해 알 수 있는 유다 멸망의 참된 이유는 무엇입니까?", answer: "예배의 부족이 아닌 정의의 부족" },
+                { type: 'short-answer', question: "성경에 자주 등장하는 '고아와 과부'는 어떤 이들을 의미합니까?", answer: "사회적 약자" },
+                { type: 'short-answer', question: "하나님께서 기뻐하시는 금식은 무엇입니까? (사 58)", answer: "흉악의 결박을 풀어주며 멍에의 줄을 끌러 주며, 압제 당하는 자를 자유케 하며 모든 멍에를 꺾는 것" },
+                { type: 'short-answer', question: "이사야의 '남은 자 사상'이란 무엇입니까?", answer: "앗수르의 침략에 이스라엘이 심판을 당하겠지만 소수의 남은 자가 있어 하나님께로 돌아올 것이며, 그 남은 자들이 하나님께 의존하며 역사를 이어갈 것이다." },
+                { type: 'short-answer', question: "예레미야 7장이 말하는 백성의 살 길은 무엇입니까?", answer: "길고 행위를 참으로 바르게 해야 한다. 이웃들 사이에 정의를 행해야 한다. 이방인과 고아와 과부를 압제 하지 말아야 한다" },
+                { type: 'short-answer', question: "예레미야 애가는 무엇을 슬퍼하여 쓴 것입니까?", answer: "예루살렘의 함락" },
+                { type: 'short-answer', question: "에스겔 37장에서 마른 뼈에 생기가 붙어 살아나 큰 군대를 이루는 사건은 무엇을 상징합니까?", answer: "이스라엘 백성이 죽음과도 같은 포로생활을 하다가 여호와의 살리심으로 말미암아 새로운 날을 허락받을 상징" },
+                { type: 'short-answer', question: "호세아서는 하나님과 이스라엘의 관계를 어떻게 설명합니까? (호 2)", answer: "남편과 아내의 관계" },
+                { type: 'short-answer', question: "호세아 6장은 하나님께서 진정으로 원하시는 예배를 무엇이라 말합니까?", answer: "인애와 하나님을 아는 것" },
+                { type: 'short-answer', question: "요엘서에서 '여호와의 날'이 의미하는 것은 무엇입니까? (욜 2)", answer: "심판의 날" },
+                { type: 'short-answer', question: "호세아서와 아모스서의 공통점은 무엇입니까", answer: "북왕국을 향한 예언, 여로보암의 시대, 회개의 촉구" },
+                { type: 'short-answer', question: "요나가 여호와께 불평한 이유는 무엇입니까? (욘 4)", answer: "자신이 원하는 바대로 니느웨가 심판을 받지 않고, 여호와께서 재앙을 돌이키셨기 때문" },
+                { type: 'short-answer', question: "학개서의 주요 주제는 무엇입니까? (학 2)", answer: "성전건축" },
+                { type: 'short-answer', question: "스가랴 3장에서 여호와께서는 메시야로 상징되는 무엇을 나게 하리라 하셨습니까?", answer: "싹" },
+                { type: 'short-answer', question: "말라기 4장에서 크고 두려운 날이 이르기 전에 보내시겠다고 약속한 선지자는 누구입니까?", answer: "엘리야" },
+                { type: 'short-answer', question: "구약에 나타난 메시아의 핵심 사상은 무엇입니까?", answer: "오실 메시야에 대한 사상" },
+                
+                // 구약 객관식
+                { type: 'multiple-choice', question: "모세 오경이란 무엇입니까?", answers: [{ text: "창세기, 출애굽기, 레위기, 민수기, 신명기", correct: true }, { text: "창세기, 레위기, 민수기, 신명기, 여호수아", correct: false }, { text: "창세기, 민수기, 신명기, 여호수아, 열왕기", correct: false }, { text: "창세기, 출애굽기, 레위기, 민수기, 여호수아", correct: false }] },
+                { type: 'multiple-choice', question: "하나님은 아담과 하와를 동산에서 내보내시기 전에 어떤 옷을 만들어 주셨습니까? (창 3)", answers: [{ text: "아담을 위한 가죽 옷", correct: false }, { text: "아담과 하와를 위한 가죽 옷", correct: true }, { text: "무화과 잎으로 엮은 옷", correct: false }, { text: "약대 털옷", correct: false }] },
+                { type: 'multiple-choice', question: "노아의 방주에 대한 설명 중 옳지 못한 것은 무엇입니까? (창 6)", answers: [{ text: "고페르 나무로 만들었다.", correct: false }, { text: "칸들을 만들고 밖에만 역청을 칠했다.", correct: true }, { text: "문은 옆으로 내고 상, 중, 하 삼층을 설계되었다.", correct: false }, { text: "길이 삼백 규빗, 너비 오십 규빗, 높이 삼십 규빗", correct: false }] },
+                { type: 'multiple-choice', question: "살렘의 왕 멜기세덱에 대한 설명으로 옳지 않은 것은 무엇입니까? (창 14)", answers: [{ text: "아브람이 그 얻은 것 중에서 십분의 일을 그에게 주었다.", correct: false }, { text: "아브람을 위해 천지의 주재 하나님께 복을 빌어주었다.", correct: false }, { text: "멜기세덱은 아브람 일행을 위해 떡과 포도주를 가지고 찾아왔다.", correct: false }, { text: "멜기세덱은 예루살렘의 왕이었고 이방신 대제사장이었다.", correct: true }] },
+                { type: 'multiple-choice', question: "다음 중 할례에 관한 설명 중 옳은 것은 무엇입니까? (창 17)", answers: [{ text: "할례는 레위인이 지킬 언약의 표징이었다.", correct: false }, { text: "이스라엘 사람이 부리는 종들은 받지 않아도 되었다.", correct: false }, { text: "모든 남자는 난 지 팔일 만에 할례를 받아야 했다.", correct: true }, { text: "할례는 오로지 이방인과 하나님 사이에 맺은 영적 언약의 표시였다", correct: false }] },
+                { type: 'multiple-choice', question: "다음 중 '여호와 이레'와 관련이 없는 내용은 무엇입니까?", answers: [{ text: "여호와의 산에서 준비되리라", correct: false }, { text: "이삭 대신 하나님이 예비하신 숫양을 번제로 드렸다.", correct: false }, { text: "모리아 땅의 한 산으로 후에 솔로몬의 성전이 세워진 산", correct: false }, { text: "아브라함이 그의 종들과 함께 모리아 산에서 번제를 드렸다.", correct: true }] },
+                { type: 'multiple-choice', question: "이스라엘 백성은 유월절에 무엇을 먹고 출발하였습니까? (출 12)", answers: [{ text: "누룩없는 떡과 양고기를 먹었다.", correct: false }, { text: "쓴 나물과 누룩이 없는 떡을 먹었다.", correct: false }, { text: "누룩없는 떡과 쓴 나물과 양고기를 먹었다.", correct: true }, { text: "누룩없는 떡과 쓴 나물과 양고기와 포도주를 먹었다.", correct: false }] },
+                { type: 'multiple-choice', question: "하나님은 왜 애굽에서 나온 이스라엘 백성을 가까운 블레셋 땅으로 인도하지 않고 홍해의 광야로 길로 인도하셨습니까? (출 13)", answers: [{ text: "블레셋 군대의 수비대가 너무 강해서", correct: false }, { text: "백성이 전쟁을 하게 되면 마음을 돌이켜 애굽으로 돌아갈 것을 염려하셔서", correct: true }, { text: "새로운 길을 탐구하시고자", correct: false }, { text: "불기둥과 구름기둥으로 인도하시기 위하여", correct: false }] },
+                { type: 'multiple-choice', question: "이스라엘을 지도하는 천부장, 백부장, 오십부장, 십부장을 세우는 기준으로서 이드로가 언급한 것이 아닌 것은 어떤 것입니까? (출 18)", answers: [{ text: "외모가 출중한 자", correct: true }, { text: "진실한 자", correct: false }, { text: "불의한 이익을 미워하는 자", correct: false }, { text: "하나님을 두려워하는 자", correct: false }] },
+                { type: 'multiple-choice', question: "제단을 쌓을 때 사용되는 돌은 어떠해야 합니까? (출 20)", answers: [{ text: "반듯하게 깨뜨린 돌", correct: false }, { text: "정으로 다듬지 아니한 돌", correct: true }, { text: "정으로 다듬어 준비된 돌", correct: false }, { text: "거룩한 산에서 가져온 돌", correct: false }] },
+                { type: 'multiple-choice', question: "여호와께서 모세에게 장막과 기구 만들 재료를 어떻게 거두라고 하셨습니까? (출 25)", answers: [{ text: "많이 드리는 자의 것을 받으라고 하셨다.", correct: false }, { text: "즐거운 마음으로 드리는 자에게 받으라고 하셨다.", correct: true }, { text: "조금 드리는 자의 것을 받으라고 하셨다.", correct: false }, { text: "깨끗하게 보이는 것을 받으라 하셨다.", correct: false }] },
+                { type: 'multiple-choice', question: "'... 이는 나와 너희 사이에 너희 대대의 표징이니 나는 너희를 거룩하게 하는 여호와인줄 너희가 알게 함이라'라는 출애굽기 31장 13절은 무엇에 관한 말씀입니까?", answers: [{ text: "십계명", correct: false }, { text: "유월절", correct: false }, { text: "안식일", correct: true }, { text: "할례", correct: false }] },
+                { type: 'multiple-choice', question: "병 있는 동안 늘 부정했던 나병 환자에게 취해진 조치는 무엇입니까? (레 13)", answers: [{ text: "집 안에서 철저하게 격리되었다.", correct: false }, { text: "나을 때까지 제사장에게 치료를 받아야 했다.", correct: false }, { text: "아무도 모르면 문제가 없었다.", correct: false }, { text: "진영 밖에서 홀로 살아야 했다", correct: true }] },
+                { type: 'multiple-choice', question: "다음 중 하나님께서 친히 나타나신 곳은 어디입니까? (레 16)", answers: [{ text: "분향단", correct: false }, { text: "속죄소", correct: true }, { text: "떡상", correct: false }, { text: "물두멍", correct: false }] },
+                { type: 'multiple-choice', question: "다음 중 희년에 관한 설명 중 틀린 것은 무엇입니까? (레 25)", answers: [{ text: "일곱 안식년 후의 오십 년째 해로소, 파종을 하지 않는다.", correct: false }, { text: "가난하여 몸이 팔린 형제들은 가족과 그의 조상의 기업으로 돌아가게 해야 한다.", correct: false }, { text: "성벽이 있는 성 내의 가옥은 판지 일년에 무르지 못하면 산자의 소유가 된다.", correct: true }, { text: "레위 족속이 소유한 성읍의 가옥은 무르지 아니하면 산 자의 소유가 된다.", correct: false }] },
+                { type: 'multiple-choice', question: "이스라엘 자손 중에서 레위인을 구별해야 하는 이유는 무엇입니까? (민 8)", answers: [{ text: "모세의 가문이기 때문에", correct: false }, { text: "레위인들이 그렇게 하기를 원했기 때문에", correct: false }, { text: "하나님께서 그들을 특별히 사랑하셨기 때문에", correct: false }, { text: "하나님께서 모든 처음 난 자 대신 레위인을 취하셨기 때문에", correct: true }] },
+                { type: 'multiple-choice', question: "하나님은 가나안 정탐 이후, 이스라엘이 40년간 광야에서 방황하리라 하셨습니다. 그렇다면 40년이란 시간은 무엇 때문에 주어진 시간입니까? (민 14)", answers: [{ text: "모세가 40년간 광야에서 생활했기 때문에", correct: false }, { text: "40년이 한 세대를 의미하기 때문에", correct: false }, { text: "모세가 그렇게 청했기 때문에", correct: false }, { text: "정탐한 날수 중 하루를 일 년으로 계산했기 때문에", correct: true }] },
+                { type: 'multiple-choice', question: "하나님께서 비느하스에게 평화의 언약, 곧 그와 그의 후손에게 영원한 제사장 직분의 언약을 주신 이유는 무엇입니까? (민 25)", answers: [{ text: "하나님을 위하여 질투하여 이스라엘을 속죄했으므로", correct: true }, { text: "율법을 잘 가르쳤으므로", correct: false }, { text: "제사장으로서 모범을 보였으므로", correct: false }, { text: "아론이 특별히 총애했으므로", correct: false }] },
+                { type: 'multiple-choice', question: "여호와 하나님의 성품에 관한 설명으로 옳지 않은 것은 무엇입니까? (신 10)", answers: [{ text: "사람을 외모로 보지 않으시는 분", correct: false }, { text: "고아와 과부를 위하여 정의를 행하시는 분", correct: false }, { text: "뇌물을 받지 않으시는 분", correct: false }, { text: "질투하지 않으시는 분", correct: true }] },
+                { type: 'multiple-choice', question: "모세의 죽음에 관한 설명으로 옳지 않은 것은 무엇입니까? (신 34)", answers: [{ text: "죽을 때의 나이는 120세였다.", correct: false }, { text: "모압 땅의 골짜기에서 장사되었으나, 오늘에까지 그의 묻힌 곳을 아는 자가 없다.", correct: false }, { text: "그가 죽을 때까지 눈이 흐리지 않았고, 기력이 쇠하지 않았다.", correct: false }, { text: "아론과 함께 죽었다.", correct: true }] },
+                { type: 'multiple-choice', question: "이스라엘 백성이 요단 강을 건널 때 맨 먼저 발을 디딘 자들은 누구입니까? (수 3)", answers: [{ text: "여호수아와 갈렙", correct: false }, { text: "요단 동편 세 지파의 용사들", correct: false }, { text: "백성의 지도자들", correct: false }, { text: "언약궤를 맨 제사장들", correct: true }] },
+                { type: 'multiple-choice', question: "다음 중 갈렙에 대한 설명 중 옳지 않은 것은 무엇입니까? (수 15)", answers: [{ text: "유다 지파 사람으로 여호수아와 함께 가나안을 정탐한 적이 있다.", correct: false }, { text: "가나안 정복 전쟁을 위해 평생을 독신으로 살았다.", correct: true }, { text: "그니스 사람으로 여분네의 아들이다.", correct: false }, { text: "여호수아와 더불어 죽지 않고 가나안에 들어가는 복을 받았다", correct: false }] },
+                { type: 'multiple-choice', question: "이스라엘의 정치제도는 본래 무엇입니까?", answers: [{ text: "군왕정치 제도", correct: false }, { text: "사사정치 제도", correct: false }, { text: "신정정치 제도", correct: true }, { text: "의회정치 제도", correct: false }] },
+                { type: 'multiple-choice', question: "'엔학고레'라는 이름의 뜻은 무엇입니까? (삿 15)", answers: [{ text: "평안한 자의 샘", correct: false }, { text: "부르짖는 자의 샘", correct: true }, { text: "파는 자의 샘", correct: false }, { text: "열심 있는 자의 샘", correct: false }] },
+                { type: 'multiple-choice', question: "'사무엘'이란 이름의 뜻은 무엇입니까? (삼상 1)", answers: [{ text: "내가 여호와께 그를 구하였다.", correct: true }, { text: "나의 주님, 나의 하나님.", correct: false }, { text: "나의 도우심은 하나님이라.", correct: false }, { text: "주여 나를 도우소서.", correct: false }] },
+                { type: 'multiple-choice', question: "사무엘이 미스바에서 여호와께 제단을 쌓고 물을 길어 붓고 금식하며 기도한 것에 대한 설명으로 옳지 않은 것은 무엇입니까? (삼상 7)", answers: [{ text: "사무엘과 이스라엘 백성은 물을 길어 부음으로 번제를 드리는 것이다.", correct: false }, { text: "이 의식은 물을 쏟아 붓듯이 하나님께 마음을 쏟아 붓는 의식이다.", correct: false }, { text: "제단을 쌓을 때 쓰인 돌에 묻은 더러운 흙과 때를 씻어내기 위함이다.", correct: true }, { text: "여호와의 제단에 물을 쏟아 붓는 중에 백성의 마음도 정결하게 준비된다", correct: false }] },
+                { type: 'multiple-choice', question: "다윗이 사울을 피하여 숨어 다녔던 장소가 아닌 곳은 어디입니까?", answers: [{ text: "예루살렘 산지", correct: true }, { text: "마온 광야", correct: false }, { text: "엔게디 요새", correct: false }, { text: "십 광야", correct: false }] },
+                { type: 'multiple-choice', question: "다음 중 다윗 왕의 치적이 아닌 것은 무엇입니까?", answers: [{ text: "수도를 예루살렘으로 정하였다.", correct: false }, { text: "빼앗겼던 법궤를 찾아 예루살렘으로 옮겨놓았다.", correct: false }, { text: "블레셋을 비롯한 이웃 나라들을 차례로 점령하여 국경을 넓혔다.", correct: false }, { text: "하나님의 성전을 건축하였다", correct: true }] },
+                { type: 'multiple-choice', question: "사무엘하 7장에 기록된 다윗 언약의 내용에 해당하지 않는 것은 무엇입니까?", answers: [{ text: "여호와께서 다윗의 이름을 위대하게 하실 것이다.", correct: false }, { text: "다윗의 왕가가 영원히 보전될 것이다.", correct: false }, { text: "다윗의 씨가 여호와의 성전을 건축할 것이다.", correct: false }, { text: "다윗의 씨가 범죄하면 여호와의 은총을 빼앗을 것이다.", correct: true }] },
+                { type: 'multiple-choice', question: "다음 중 엘리사가 행한 이적은 무엇입니까?", answers: [{ text: "물에 빠진 쇠도끼를 떠오르게 함", correct: true }, { text: "죽은 제자의 아내를 위해 통의 가루가 떨어지지 않게 함", correct: false }, { text: "수년 동안 비가 내리지 않게 함", correct: false }, { text: "겉옷을 말아 요단강을 갈라 마른 땅 위로 건너감", correct: false }] },
+                { type: 'multiple-choice', question: "남 왕국 유다의 왕으로서 하나님을 섬기며 종교개혁을 한 사람이 아닌 왕은 누구입니까? (왕하 12, 19, 22)", answers: [{ text: "여호사밧", correct: false }, { text: "아몬", correct: true }, { text: "히스기야", correct: false }, { text: "요시야", correct: false }] },
+                { type: 'multiple-choice', question: "가드 사람으로서 하나님의 궤를 석달 동안 자기 집에 모심으로써 하나님께 복을 받은 사람은 누구입니까? (대상 13)", answers: [{ text: "아비나답", correct: false }, { text: "웃사", correct: false }, { text: "오벳에돔", correct: true }, { text: "아히오", correct: false }] },
+                { type: 'multiple-choice', question: "고레스의 조서에 따라 성전의 그릇을 가지고 예루살렘으로 귀환한 유다의 총독은 누구입니까? (스1)", answers: [{ text: "미드르닷", correct: false }, { text: "스룹바벨", correct: false }, { text: "느헤미야", correct: false }, { text: "세스바살", correct: true }] },
+                { type: 'multiple-choice', question: "유다의 형편을 들은 느헤미야가 가장 먼저 한 행동은 무엇입니까? (느 1)", answers: [{ text: "바사왕국에 귀국하기로 결정했다.", correct: false }, { text: "하나님 앞에 울며 기도했다.", correct: true }, { text: "하나님을 원망했다.", correct: false }, { text: "예루살렘의 장로들에게 서신을 보냈다.", correct: false }] },
+                { type: 'multiple-choice', question: "유대인의 포로 귀환 지도자는 누구입니까?", answers: [{ text: "스룹바벨, 에스라, 학개", correct: false }, { text: "느헤미야, 에스라, 에스겔", correct: false }, { text: "스룹바벨, 에스라, 느헤미야", correct: true }, { text: "느헤미야, 에스라, 학개", correct: false }] },
+                { type: 'multiple-choice', question: "예루살렘 성벽과 성문을 건축하는 공사를 담당한 사람들은 누구입니까? (느 3)", answers: [{ text: "느헤미야의 사비로 산 품꾼", correct: false }, { text: "다리왕이 보낸 준 기술자들", correct: false }, { text: "이방인과 노예들", correct: false }, { text: "여러 사람이 한 부분씩 분담하여 진행", correct: true }] },
+                { type: 'multiple-choice', question: "부림절에 관한 설명 중 옳지 않은 것은 무엇입니까?", answers: [{ text: "'부르'의 이름을 따라 '부림'이라 하였다.", correct: false }, { text: "아달월 13일, 14일이 부림절로 지키는 날이다.", correct: true }, { text: "부림절을 유다의 후손들이 계속 지키게 하였다.", correct: false }, { text: "부림절의 사건으로 모르드개는 유다인 중에 크게 존경을 받았다.", correct: false }] },
+                { type: 'multiple-choice', question: "욥의 친구들이 욥에게 공통적으로 하는 말은 무엇입니까?", answers: [{ text: "의인이 수난을 당하는 경우도 있다.", correct: false }, { text: "당하는 수난에 감사하라", correct: false }, { text: "수난은 범죄의 결과이다.", correct: true }, { text: "수난은 우연에 불과하다.", correct: false }] },
+                { type: 'multiple-choice', question: "여호와께서 욥에게 질문하시고 대답을 요구하신 내용은 무엇입니까? (욥38)", answers: [{ text: "구원의 역사", correct: false }, { text: "하나님의 속성", correct: false }, { text: "자연계와 창조의 신비", correct: true }, { text: "욥의 불평과 고소 내용", correct: false }] },
+                { type: 'multiple-choice', question: "욥은 두 번째 응답에서 하나님을 어떤 분으로 고백하였습니까? (욥 42)", answers: [{ text: "무소부재 하신 분", correct: false }, { text: "무소불능 하신 분", correct: true }, { text: "의인에게도 고난을 주시는 분", correct: false }, { text: "정의롭고 공평하신 분", correct: false }] },
+                { type: 'multiple-choice', question: "욥이 티끌과 재 가운데서 하나님께 회개한 내용은 무엇입니까? (욥 42)", answers: [{ text: "하나님을 원망한 것", correct: false }, { text: "친구들을 미워하고 저주한 것", correct: false }, { text: "하나님의 창조물에 대해 무지했던 것", correct: false }, { text: "무지한 말로 이치를 가린 것", correct: true }] },
+                { type: 'multiple-choice', question: "'천만인이 나를 에워싸 진 친다 하여도 나는 두려워하지 아니하리이다'는 다윗이 언제 했던 고백입니까? (시 3)", answers: [{ text: "압살롬을 피할 때", correct: true }, { text: "전쟁에서 승리한 때", correct: false }, { text: "성전에 올라갈 때", correct: false }, { text: "가드에서 블레셋에게 잡힌 때", correct: false }] },
+                { type: 'multiple-choice', question: "시편 중 예수님의 십자가 위에서 고난과 버림받음과 실제적인 연관이 있는 시는 몇 편입니까?", answers: [{ text: "시편 12편", correct: false }, { text: "시편 22편", correct: true }, { text: "시편 33편", correct: false }, { text: "시편 43편", correct: false }] },
+                { type: 'multiple-choice', question: "하나님이 구하시는 제사는 다음 중 어느 것입니까? (시 51)", answers: [{ text: "연약한 심령", correct: false }, { text: "값비싼 번제", correct: false }, { text: "상한 심령", correct: true }, { text: "자신의 의", correct: false }] },
+                { type: 'multiple-choice', question: "시편 118편에서 '건축자가 버린 돌이 집 모퉁이의 ()가 되었나니'라는 괄호 안에 들어갈 말은 무엇입니까?", answers: [{ text: "기초석", correct: false }, { text: "머릿돌", correct: true }, { text: "박힌 돌", correct: false }, { text: "산돌", correct: false }] },
+                { type: 'multiple-choice', question: "전도서의 주요 내용은 무엇입니까?", answers: [{ text: "세상만사가 헛됨을 기록하는 비관론", correct: false }, { text: "솔로몬의 인생 회고록", correct: false }, { text: "다윗의 새로운 깨달음을 기록한 책", correct: false }, { text: "하나님을 경외하고 그에게 순종함이 헛됨을 면하는 길이다", correct: true }] },
+                { type: 'multiple-choice', question: "예언자들의 선포 속에 공통적으로 있는 것은 무엇입니까?", answers: [{ text: "죄만을 책망한다.", correct: false }, { text: "죄와 형벌과 장래 소망을 말한다.", correct: true }, { text: "죄와 형벌을 말한다.", correct: false }, { text: "장래의 소망을 말한다", correct: false }] },
+                { type: 'multiple-choice', question: "'이는 한 아기가 우리에게 났고 한 아들을 우리에게 주신 바 되었는데 그의 어깨에는 정사를 메었고 그의 이름은...'에서 그의 이름으로 나타나지 않은 것은 무엇입니까? (사 9)", answers: [{ text: "평강의 왕", correct: false }, { text: "전능하신 하나님", correct: false }, { text: "만군의 하나님", correct: true }, { text: "영존하시는 아버지", correct: false }] },
+                { type: 'multiple-choice', question: "다음()안에 들어갈 말은 무엇입니까? '또 여호와와 연합하여 그를 섬기며 여호와의 이름을 사랑하며 그의 종이 되며()을/를 지켜 더럽히지 아니하며 나의 언약을 굳게 지키는 이방인마다 내가 곧 그들을 나의 성산으로 인도하여 기도하는 내 집에서 그들을 기쁘게 할 것이며' (사 56)", answers: [{ text: "절기", correct: false }, { text: "안식일", correct: true }, { text: "제사", correct: false }, { text: "속죄일", correct: false }] },
+                { type: 'multiple-choice', question: "'여호와께서 이와 같이 말씀하시니라 ()에서 슬퍼하며 통곡하는 소리가 들리니()이 그 자식 때문에 애곡하는 것이라. 그가 자식이 없어져서 위로 받기를 거절하는도다'에서 괄호에 들어갈 말로 알맞게 짝지어진 것은 무엇입니까? (렘 31)", answers: [{ text: "베들레헴 - 라헬", correct: false }, { text: "라마 - 라헬", correct: true }, { text: "베들레헴 - 야곱", correct: false }, { text: "라마 - 야곱", correct: false }] },
+                { type: 'multiple-choice', question: "호세아 4장에서 여호와께서 책망하신 범죄가 아닌 것은 무엇입니까?", answers: [{ text: "제사를 빠뜨림", correct: true }, { text: "지식을 버림", correct: false }, { text: "율법을 잊음", correct: false }, { text: "제물에만 관심", correct: false }] },
+                { type: 'multiple-choice', question: "요엘서의 여호와의 날이 의미하는 바는 무엇입니까? (욜 2)", answers: [{ text: "승리의 날", correct: false }, { text: "회개의 날", correct: false }, { text: "심판의 날", correct: true }, { text: "구원의 날", correct: false }] },
+                { type: 'multiple-choice', question: "아래의 본문 중 메시아 탄생에 대한 본문은 어디입니까?", answers: [{ text: "이사야 53:1", correct: false }, { text: "미가 5:2", correct: true }, { text: "이사야 1:23", correct: false }, { text: "레 6:4", correct: false }] },
+                { type: 'multiple-choice', question: "다음 중 말라기 선지자에 관한 기록 옳지 않은 것은 무엇입니까?", answers: [{ text: "말라기의 뜻은 나의 사자란 뜻이다.", correct: false }, { text: "말라기 선지자는 메시야와 메시야 왕국에 대한 메시지를 전했다.", correct: false }, { text: "말라기 선지자는 제사장들과 백성들의 회개를 촉구한 선지자다.", correct: false }, { text: "말라기는 성전건축에 관한 메시지를 전한 선지자이다.", correct: true }] },
+            ],
+            newTestament: [
+                // 신약 주관식
+                { type: 'short-answer', question: "'임마누엘'이란 무슨 뜻입니까?", answer: "하나님이 우리와 함께 계시다." },
+                { type: 'short-answer', question: "세례 요한이 유대 광야에서 전파한 말은?", answer: "회개하라 천국이 가까이 왔느니라" },
+                { type: 'short-answer', question: "베드로의 신앙고백을 써보시오.", answer: "주는 그리스도시요, 살아 계신 하나님의 아들이시니이다." },
+                { type: 'short-answer', question: "요한의 세례와 예수의 세례가 다른 점은 무엇입니까?", answer: "① 요한: 물세례(회개) ② 예수: 불세례(성령)" },
+                { type: 'short-answer', question: "새 계명은 무엇입니까?", answer: "서로 사랑하라" },
+                { type: 'short-answer', question: "요한복음에서 소개되는 예수님의 7가지 자기 선언은 무엇입니까", answer: "1) 나는 생명의 (떡)이다 2) 나는 (세상)의 빛이다 3) 나는 (양)의 문이다 4) 나는 (선한 목자)다. 5) 나는 (부활)이요 생명이다 6) 나는 길이요 (진리)요 생명이다 7) 나는 참 (포도나무)이다" },
+                { type: 'short-answer', question: "예수님의 이적 중 4복음서에 모두 기록되어 있는 이적은 무엇입니까?", answer: "5병 2어로 5,000명을 먹이신 일" },
+                { type: 'short-answer', question: "예수의 족보 중에 들어있는 여자의 이름은 무엇입니까?", answer: "다말, 라합, 룻, 우리아의 아내, 마리아" },
+                { type: 'short-answer', question: "'실로암'이란 무슨 뜻입니까?", answer: "보내심을 받았다." },
+                { type: 'short-answer', question: "예수께서 십자가 위에서 하신 7가지 말씀입니다. 괄호 안에 적으시오.", answer: "(1) 아버지여, 저희를 (사)하여 주옵소서. (2) 오늘 네가 나와 함께 (낙원)에 있으리라. (3) 여자여, 보소서, (아들)이니이다. (4) 엘리 엘리 (라마 사박다니). (5) 내가 (목마르다). (6) 다 (이루었다). (7) 아버지여, 내 (영혼)을 아버지 손에 부탁하나이다" },
+                { type: 'short-answer', question: "큰 계명의 내용은 무엇입니까?", answer: "하나님의 사랑, 이웃 사랑" },
+                { type: 'short-answer', question: "예수님께서 승천하시기 전에 분부하신 말씀과 약속하신 말씀을 써보시오", answer: "1) 분부: 예루살렘을 떠나지 말고 아버지의 약속하신 것을 기다리라. 2) 약속: 너희는 몇 날이 못 되어 성령으로 세례를 받으리니 오직 성령이 임하시면 너희가 권능을 받고 예루살렘과 유다와 사마리아와 땅 끝까지 이르러 내 증인이 되리라." },
+                { type: 'short-answer', question: "믿음으로 옳다 함을 얻은 결과를 3가지만 쓰시오.", answer: "화평을 누림. 구원을 얻음. 즐거워 함" },
+                { type: 'short-answer', question: "초대 교회 때 일곱 집사를 택한 기준 3가지는 무엇인가?", answer: "성령충만, 지혜가 충만, 칭찬 받는 사람" },
+                { type: 'short-answer', question: "'사랑에는 ( )이 없나니 ( )을 미워하고 ( )에 속하라'(롬 12:9)", answer: "거짓, 악, 선" },
+                { type: 'short-answer', question: "안디옥 교회가 파송한 첫 선교사는 누구입니까?", answer: "바나바와 사울(바울)" },
+                { type: 'short-answer', question: "초대 교회 때 일곱 집사를 택하게 된 배경은?", answer: "헬라파 유대인의 과부들이 구제 대상에서 소외되어 히브리파 사람들을 원망해서" },
+                { type: 'short-answer', question: "바울이 주께 받은 사명은?(행 20:24)", answer: "하나님의 은혜의 복음을 증거하는 일" },
+                { type: 'short-answer', question: "초대교회의 아름다운 특징 4가지를 쓰시오.", answer: "유무상통, 열심히 모임, 성경상고, 전도열심" },
+                { type: 'short-answer', question: "초대교회의 제직(임원) 선택기준은 무엇입니까?", answer: "성령과 지혜가 충만하고 칭찬 듣는 사람" },
+                { type: 'short-answer', question: "에베소서에 나타나 있는 하나님의 선물은 무엇입니까? (엡 2:8-10)", answer: "믿음으로 말미암아 구원을 얻는 것" },
+                { type: 'short-answer', question: "로마서에서 죄와 은혜는 어디서 났으며, 어떤 결과를 가져옵니까?", answer: "(1) 죄: 아담에게서 와서 사망으로 (2) 은혜: 그리스도에게서 와서 영생을 얻음" },
+                { type: 'short-answer', question: "아담은 누구의 모형입니까?(롬5)", answer: "오실 자(예수 그리스도)" },
+                { type: 'short-answer', question: "우리 속에 무엇이 있어야 그리스도의 사람이 됩니까?", answer: "그리스도의 영" },
+                { type: 'short-answer', question: "성만찬 때 주의 몸을 분별하지 못하고 먹고 마시는 자는 '무엇을' 먹고 마시는 것과 같은가? (고전11장)", answer: "자기의 죄" },
+                { type: 'short-answer', question: "성령의 9가지 열매는 무엇입니까?", answer: "사랑, 희락, 화평, 인내, 자비, 양선, 충성, 온유, 절제" },
+                { type: 'short-answer', question: "다음 앞뒤 말을 선으로 이어 온전한 구절이 되게 하세요. (1)규모없는 자들을 (2)마음이 약한 자들을 (3)힘이 없는 자들을 (4)모든 사람을 대하여", answer: "(1)권계하며 (2)안위하고 (3)붙들어 주며 (4)오래 참으라" },
+                { type: 'short-answer', question: "빌립보 성도들의 마음 안에서 착한 일을 시작하신 이는 ( )이십니다.(빌1장)", answer: "그리스도 예수" },
+                { type: 'short-answer', question: "바울이 디모데에게 믿는 자에게 본이 되라고 한 다섯 가지는 무엇입니까? (딤전 4장)", answer: "말, 행실, 사랑, 믿음, 정절" },
+                { type: 'short-answer', question: "일만 악의 뿌리는 무엇을 사랑함입니까?", answer: "돈을 사랑함" },
+                { type: 'short-answer', question: "그리스도 예수 안에서 우리에게 향하신 하나님의 뜻은 무엇입니까?(살전 5장)", answer: "항상 기뻐하라. 쉬지말고 기도하라. 범사에 감사하라." },
+                { type: 'short-answer', question: "예수 그리스도는 누구의 반차를 따르는 제사장인가? (히 5장)", answer: "멜기세덱" },
+                { type: 'short-answer', question: "야고보서의 주제는 무엇입니까?", answer: "행함이 있는 믿음이 산 믿음" },
+                { type: 'short-answer', question: "성도의 신분의 네 가지 특권을 쓰시오. (벧전 2장)", answer: "택하신 족속, 왕같은 제사장들, 거룩한 나라, 그의 소유된 백성" },
+                { type: 'short-answer', question: "속히 할 것과 더디 할 것이 무엇입니까? (약 1장)", answer: "듣기는 속히, 말하기는 더디하라" },
+                { type: 'short-answer', question: "계시록에 나오는 아시아의 일곱 교회의 이름은 무엇입니까?", answer: "에베소, 서머나, 두아디라, 버가모, 사데, 빌라델비아, 라오디게아" },
+                { type: 'short-answer', question: "다음 땅 이름과 사건을 연결하시오.", answer: "(1)베다니-나사로의고향 (2)수가-사마리아여인 (3)밧모섬-계시록씀 (4)베뢰아-성경상고 (5)엠마오-부활후두제자 (6)가나-물로포도주 (7)골고다-십자가 (8)고린도-분쟁과당 (9)겟세마네-최후의기도 (10)길리기아다소-사울(바울)" },
+                { type: 'short-answer', question: "다음 낱말의 이름을 쓰세요.", answer: "(1)고르반:하나님께드릴것 (2)에바다:열려라 (3)아겔다마:피밭 (4)예수:구원 (5)달리다굼:소녀야일어나라 (6)임마누엘:하나님이우리와함께계심" },
+
+                // 신약 객관식
+                { type: 'multiple-choice', question: "복음이란 뜻은 무엇입니까?", answers: [{ text: "하나님의 축복의 말씀이라는 뜻", correct: false }, { text: "구원의 기쁜 소식이란 뜻", correct: true }, { text: "예수 그리스도의 교훈집이라는 뜻", correct: false }, { text: "예수 그리스도의 말씀이라는 뜻", correct: false }] },
+                { type: 'multiple-choice', question: "예수의 처음 이적은 무엇입니까?", answers: [{ text: "물로 포도주 만든 것", correct: true }, { text: "앉은뱅이 고치신 것", correct: false }, { text: "5병 2어로 5,000명 먹이신 것", correct: false }, { text: "눈먼 이를 고치신 것", correct: false }] },
+                { type: 'multiple-choice', question: "마태복음 6:1-18에서 교훈하는 세 가지 주제는 무엇인가?", answers: [{ text: "구제-기도-금식", correct: true }, { text: "구제-예배-위선", correct: false }, { text: "예배-기도-위선", correct: false }, { text: "예배-기도-금식", correct: false }] },
+                { type: 'multiple-choice', question: "누가복음에 나타난 족보의 특징은 무엇입니까?", answers: [{ text: "예수님부터 하나님까지의 관계를 표시하는 족보", correct: true }, { text: "아브라함부터 예수님까지의 관계를 표시하는 족보", correct: false }, { text: "예수님부터 아담까지의 관계를 표시하는 족보", correct: false }, { text: "예수님부터 다윗까지의 관계를 표시하는 족보", correct: false }] },
+                { type: 'multiple-choice', question: "사람을 더럽게 하는 것은 무엇입니까?", answers: [{ text: "손을 씻지 않고 먹는 것", correct: false }, { text: "부정한 음식을 먹는 것", correct: false }, { text: "입에서 나오는 것", correct: true }, { text: "주일을 범하는 것", correct: false }] },
+                { type: 'multiple-choice', question: "유대인의 시간은 오늘 우리의 시간과 다릅니다. 유대 시간으로 제 6시는 현재 우리 시간으로 언제입니까?", answers: [{ text: "09시", correct: false }, { text: "12시", correct: true }, { text: "15시", correct: false }, { text: "18시", correct: false }] },
+                { type: 'multiple-choice', question: "'베드로'란 무슨 뜻입니까?", answers: [{ text: "갈대", correct: false }, { text: "반석", correct: true }, { text: "주춧돌", correct: false }, { text: "모퉁잇돌", correct: false }] },
+                { type: 'multiple-choice', question: "예수의 십자가 위의 죄패에는 무엇이라고 쓰여졌습니까?", answers: [{ text: "우리의 왕", correct: false }, { text: "왕중왕", correct: false }, { text: "우리의 하나님", correct: false }, { text: "유대인의 왕", correct: true }] },
+                { type: 'multiple-choice', question: "예수께서 “이 성전을 헐라, 내가 3일만에 일으키리라.” 고 하신 말씀의 뜻은 무엇입니까?", answers: [{ text: "백성들이 헐지 못할 줄 알기 때문에", correct: false }, { text: "성전을 다시 3일 만에 세울 수 있는 능력을 보여주기 위해", correct: false }, { text: "부활의 사실을 증거하기 위해서", correct: true }, { text: "예수의 능력은 무한하심을 보여 주기 위해서", correct: false }] },
+                { type: 'multiple-choice', question: "십자가 위에서 회개한 강도의 말은 무슨 뜻입니까?", answers: [{ text: "회개의 말, 구원 요청", correct: true }, { text: "육체적인 이적을 구하는 말", correct: false }, { text: "동료들에 대한 사랑의 간구", correct: false }, { text: "예수님도 당연히 받아야 할 보응을 받는 것이다.", correct: false }] },
+                { type: 'multiple-choice', question: "보혜사 성령은 누구에게 옵니까? (요 14장)", answers: [{ text: "성령의 은사 받아서 병 고치는 자에게", correct: false }, { text: "말씀의 능력이 있는 불의 사자에게", correct: false }, { text: "예수를 믿는 모든 사람에게", correct: true }, { text: "방언을 간절히 원하는 사람들에게", correct: false }] },
+                { type: 'multiple-choice', question: "예수께서 부활 후 며칠만에 승천하셨습니까?", answers: [{ text: "40일", correct: true }, { text: "12일", correct: false }, { text: "30일", correct: false }, { text: "50일", correct: false }] },
+                { type: 'multiple-choice', question: "다음 중 초대교회가 세운 일곱 집사의 자격으로 맞지 않은 것은 무엇입니까?", answers: [{ text: "성령 충만", correct: false }, { text: "지혜 충만", correct: false }, { text: "칭찬 듣는 사람", correct: false }, { text: "설교에 능한 사람", correct: true }] },
+                { type: 'multiple-choice', question: "바울과 실라가 빌립보 감옥에 갇히게 된 이유는? (행 16장)", answers: [{ text: "범죄자로 오해 받아서", correct: false }, { text: "빌립보의 법을 어겨서", correct: false }, { text: "복음을 전한다는 이유로", correct: false }, { text: "점치는 귀신을 쫓아낸 일로", correct: true }] },
+                { type: 'multiple-choice', question: "사울은 바울이라고 이름을 고쳤습니다. '바울'의 뜻은 무엇입니까?", answers: [{ text: "큰 자가 작은 자가 되었다는 뜻", correct: true }, { text: "겸손히 하나님의 제자가 되었다는 뜻", correct: false }, { text: "예수 이름으로 죄 씻음을 받고 새 사람이 된 사도라는 뜻", correct: false }, { text: "그리스도인이 되었다는 뜻", correct: false }] },
+                { type: 'multiple-choice', question: "하나님께서 야곱은 사랑하시고 에서는 미워하신 이유는 무엇입니까? (롬 9장)", answers: [{ text: "야곱은 선하고 에서는 악하기 때문", correct: false }, { text: "에서는 성격이 거칠고 야곱은 성격이 유순하기 때문에", correct: false }, { text: "야곱은 욕심이 있었고 에서는 없었기 때문에", correct: false }, { text: "하나님이 예정하신 뜻에 따라서", correct: true }] },
+                { type: 'multiple-choice', question: "원수 갚는 문제에 대해서 성경은 무엇이라고 했습니까? (롬 12장)", answers: [{ text: "원수를 친히 갚지 말고 주의 진노에 맡길 것", correct: true }, { text: "원수를 시험하여 보고 끊으라", correct: false }, { text: "원수는 진멸하고 갚아야 한다", correct: false }, { text: "원수를 처음부터 만들지 말라", correct: false }] },
+                { type: 'multiple-choice', question: "바울이 복음을 전하여도 자랑하지 못하는 원인은 무엇입니까? (고전 9장)", answers: [{ text: "본래 박해자였기 때문에", correct: false }, { text: "부득불하기 때문에", correct: true }, { text: "성령의 지시대로 함으로 자기 뜻을 할 수 없기 때문에", correct: false }, { text: "명예를 얻기 위해서", correct: false }] },
+                { type: 'multiple-choice', question: "감당 못할 시험은 어떻게 허락해 주십니까? (고전 10장)", answers: [{ text: "신앙의 연단을 위하여 주신다.", correct: false }, { text: "시험에서 이겨야 하기 때문에 주신다.", correct: false }, { text: "피할길을 내서 이기게 하신다.", correct: true }, { text: "감당을 할 수 있는지 아닌지 시험하기 위하여 주신다", correct: false }] },
+                { type: 'multiple-choice', question: "처음 그리스도인이란 칭호를 얻은 교회는 어느 교회입니까?", answers: [{ text: "예루살렘", correct: false }, { text: "사마리아", correct: false }, { text: "안디옥", correct: true }, { text: "가이사랴", correct: false }] },
+                { type: 'multiple-choice', question: "사울을 바울이라고 고쳐 기록되기 시작한 곳은 어디입니까?", answers: [{ text: "수리아 안디옥", correct: false }, { text: "살라미", correct: false }, { text: "바보", correct: true }, { text: "비시디아 안디옥", correct: false }] },
+                { type: 'multiple-choice', question: "그리스도인이 교회에서 가질 직책은 무엇입니까?", answers: [{ text: "남을 정죄하는 직책", correct: false }, { text: "죄를 책망하고 회개하는 직책", correct: false }, { text: "화목하게 하는 직책", correct: true }, { text: "남을 연단시키는 직책", correct: false }] },
+                { type: 'multiple-choice', question: "유대인이 이방인보다 나은 것은 무엇입니까?(롬 3장)", answers: [{ text: "행위가 의로운 것", correct: false }, { text: "깨끗한 삶을 살아가는 것", correct: false }, { text: "그들만을 하나님이 선택하신 것", correct: false }, { text: "하나님의 말씀을 맡은 것", correct: true }] },
+                { type: 'multiple-choice', question: "아시아에서 처음으로 그리스도 신자가 된 사람은 누구입니까?", answers: [{ text: "디모데", correct: false }, { text: "루디아", correct: false }, { text: "에배네도", correct: true }, { text: "뵈뵈", correct: false }] },
+                { type: 'multiple-choice', question: "고린도후서 2장에서, 바울이 '그리스도인'을 일컫는 표현이 아닌 것은?", answers: [{ text: "생명에 이르는 냄새", correct: false }, { text: "구원에 이르는 냄새", correct: true }, { text: "사망에 이르는 냄새", correct: false }, { text: "그리스도를 아는 냄새", correct: false }] },
+                { type: 'multiple-choice', question: "그리스도의 교회가 하나 된 경험을 계속 나눌 수 있는 교제의 근거를 나열한 것입니다. 잘못된 것은 무엇입니까?", answers: [{ text: "한 민족이다.", correct: true }, { text: "한 성령 안에 있다.", correct: false }, { text: "같은 믿음을 소유하고 있다.", correct: false }, { text: "한 세례에 참여하였다.", correct: false }] },
+                { type: 'multiple-choice', question: "적은 누룩이 온 덩이에 퍼진다는 뜻은 무엇입니까?(갈 5장)", answers: [{ text: "작은 악이 큰 악이 된다.", correct: false }, { text: "작은 교회가 큰 교회가 된다.", correct: false }, { text: "작은 선행이 큰 선행이 된다.", correct: false }, { text: "거짓교훈이 교회에 나쁜 영향을 끼친다", correct: true }] },
+                { type: 'multiple-choice', question: "다음 중에서 옳은 것을 고르시오.", answers: [{ text: "골로새서는 로마 옥중에서 디모데가 썼다.", correct: false }, { text: "골로새 교인은 디모데에게서 배웠다.", correct: false }, { text: "에바브라는 바울과 함께 된 그리스도의 종이 아니다.", correct: false }, { text: "에바브라는 골로새 교인의 사랑을 바울에게 알린 사람이다.", correct: true }] },
+                { type: 'multiple-choice', question: "데살로니가후서에서 재림 전에 있을 징조에 대해 말한 것은 다음 중 무엇입니까?", answers: [{ text: "큰 전쟁", correct: false }, { text: "천재지변", correct: false }, { text: "불법의 사람", correct: true }, { text: "대환란", correct: false }] },
+                { type: 'multiple-choice', question: "사도 바울이 데살로니가 교회로 인해 쉬지 않고 감사한 것은 무엇입니까?", answers: [{ text: "자기가 전한 말씀을 잘 받았기 때문에", correct: false }, { text: "진리의 말씀을 옳게 분별했기 때문에", correct: false }, { text: "자기가 전한 말씀을 하나님의 말씀으로 받았기 때문에", correct: true }, { text: "많은 물질로 대접해 주었기 때문에", correct: false }] },
+                { type: 'multiple-choice', question: "중간에 막힌 담을 헐어 둘을 하나로 만든 이는 누구입니까?", answers: [{ text: "모세", correct: false }, { text: "아브라함", correct: false }, { text: "예수", correct: true }, { text: "바울", correct: false }] },
+                { type: 'multiple-choice', question: "바울이 자신이 믿지 아니할 때 이런 자였다고 스스로 고백하고 있는 것이 아닌 것은 다음 중 무엇입니까?", answers: [{ text: "훼방자", correct: false }, { text: "핍박자", correct: false }, { text: "착취자", correct: true }, { text: "포행자", correct: false }] },
+                { type: 'multiple-choice', question: "다음 중 디모데에 대한 설명으로 바른 것은 무엇입니까?", answers: [{ text: "디모데의 가정은 불신 가정이었다.", correct: false }, { text: "디모데는 거짓이 없는 믿음을 아버지에게 물려 받았다.", correct: false }, { text: "디모데의 외조모는 로이스, 어머니는 유니게이다.", correct: true }, { text: "디모데의 모친은 유대인이고 부친은 로마인이다", correct: false }] },
+                { type: 'multiple-choice', question: "다음 중 그리스도께서 우리를 대신하여 자신을 주신 뜻이 아닌 것은 무엇입니까?", answers: [{ text: "모든 율법에서 구속하려 하심", correct: false }, { text: "우리도 함께 죽게 하려 하심", correct: true }, { text: "우리를 깨끗하게 하려 하심", correct: false }, { text: "친백성이 되게 하려 하심", correct: false }] },
+                { type: 'multiple-choice', question: "멜기세덱 제사장은 어떤 사람입니까?", answers: [{ text: "레위지파 자손이다.", correct: false }, { text: "아론의 자손이다.", correct: false }, { text: "유다지파 자손이다.", correct: false }, { text: "족보도 없고 아비도 없고 어미도 없는 사람이다", correct: true }] },
+                { type: 'multiple-choice', question: "기도해도 받지 못하는 까닭은 무엇입니까? (약 4장)", answers: [{ text: "정욕으로 쓰려고 잘못 구하기 때문에", correct: true }, { text: "중언부언 기도하기 때문에", correct: false }, { text: "성령의 은사를 받지 못했기 때문에", correct: false }, { text: "방언으로 기도하지 않았기 때문에", correct: false }] },
+                { type: 'multiple-choice', question: "성소 안에 있는 것은 무엇입니까? (히 9장)", answers: [{ text: "상, 등대, 비석", correct: false }, { text: "진설병, 등대, 비석", correct: false }, { text: "등대, 상, 진설병", correct: true }, { text: "금향로, 진설병, 상", correct: false }] },
+                { type: 'multiple-choice', question: "하나님께로 난 자는 어떤 자입니까? (요일 5장)", answers: [{ text: "예수께서 그리스도임을 믿는 자", correct: true }, { text: "하나님과 사귐이 있다 하고 어두움 가운데 행하는 자", correct: false }, { text: "스스로 죄없다 하는 자", correct: false }, { text: "하나님을 사랑하노라 하고 형제를 미워하는 자", correct: false }] },
+                { type: 'multiple-choice', question: "책망없는 교회는 어느 교회입니까?", answers: [{ text: "에베소", correct: false }, { text: "라오디게아", correct: false }, { text: "두아디라", correct: false }, { text: "서머나", correct: true }] },
+                { type: 'multiple-choice', question: "다음 교회의 이기는 자에게 무슨 상을 줍니까? 줄로 연결하시오.", answers: [{ text: "에베소-생명나무과", correct: true }, { text: "서머나-둘째사망해X", correct: true }, { text: "버가모-만나와흰돌", correct: true }, { text: "두아디라-만국권세,새벽별", correct: true }, { text: "사데-흰옷,생명책이름", correct: true }, { text: "빌라델비아-성전기둥", correct: true }, { text: "라오디게아-보좌에함께앉음", correct: true }] },
+                { type: 'multiple-choice', question: "하나님께서 계시는 새 예루살렘에는 이 세상에 있는 네 가지가 없다고 합니다. 이 네 가지에 속하지 않는 것은 무엇입니까?", answers: [{ text: "사망", correct: false }, { text: "애통하는 것", correct: false }, { text: "곡하는 것", correct: false }, { text: "이별하는 것", correct: true }] },
+            ],
+            doctrine: [
+                // 기독교 교리
+                { type: 'multiple-choice', question: "하나님을 알기 위한 최초의 조건은 무엇입니까?", answers: [{ text: "경험", correct: false }, { text: "이성", correct: false }, { text: "감각", correct: false }, { text: "계시", correct: true }] },
+                { type: 'short-answer', question: "신앙의 대상을 정리하시오.", answer: "전능하사 천지를 만드신 하나님, 그분의 아들 예수 그리스도, 위로와 인도자 되시는 성령님" },
+                { type: 'multiple-choice', question: "우리 하나님에 대한 신앙의 근거는 무엇입니까?", answers: [{ text: "하나님의 말씀", correct: false }, { text: "하나님의 사랑", correct: true }, { text: "그리스도의 부활", correct: false }, { text: "의지적 요소", correct: false }] },
+                { type: 'short-answer', question: "신앙과 행위의 유일한 법칙은 무엇입니까?", answer: "신구약 성경" },
+                { type: 'multiple-choice', question: "성서의 저자는 누구입니까?", answers: [{ text: "여러 사람이 시대적 배경 속에서 기록하였다.", correct: false }, { text: "하나님이 직접 돌 판에 새겨주었다.", correct: false }, { text: "하나님의 영감으로 각 사람을 통해 기록되었다.", correct: true }] },
+                { type: 'short-answer', question: "삼위일체 하나님에 대한 교리를 정의해보시오.", answer: "(1) 하나님은 영원히 서로 구별되는 성부, 성자, 성령, 세 분(삼위)으로 존재하십니다. (2) 성부, 성자, 성령, 세 분은 각각 완전한 하나님이십니다. (3) 성부, 성자, 성령, 세 분이 가지고 계시는 신성은 오직 하나이십니다." },
+                { type: 'short-answer', question: "삼위일체에 대한 구약성경의 증거를 서술하시오.", answer: "(1) 하나님이 자신을 '우리'라는 복수 대명사로 표현하셨습니다. (2) 삼위 하나님의 세 위격(인격)이 표현된 구절이 많습니다. (3) 삼위 하나님 중에서 두 위격이 표현된 구절들이 있습니다. (4) '여호와의 사자'라는 표현. (5) 하나님의 말씀을 의인화 하는 구절이나 성령을 인격적으로 다루고 있는 구절들." },
+                { type: 'short-answer', question: "삼위일체에 대한 신약성경의 증거를 서술하시오.", answer: "(1) 예수님이 세례 받으시는 장면. (2) 예수님의 지상명령. (3) 예수님이 다락방 설교. (4) 삼위 하나님이 협력해서 우리의 구원을 완성하심." },
+                { type: 'short-answer', question: "예수님의 죽으심은 우리에게 어떤 구원의 효과를 누리게 하셨습니까?", answer: "1) 대속 2) 구속 3) 화목 4) 화해 5) 사탄에 대한 승리 6) 하나님에 대한 계시" },
+                { type: 'short-answer', question: "그리스도의 세 직분은 무엇인가?", answer: "선지자, 제사장, 왕" },
+                { type: 'short-answer', question: "예수님은 왜 십자가에서 죽으셨습니까?", answer: "속죄의 제물로 멸망 받을 수밖에 없는 우리를 구속하기 위해서" },
+                { type: 'short-answer', question: "성례란 무엇이며 그 혜택은 누구에게 적용되나요?", answer: "성례란 (은혜 언약)에 인을 치는 의식을 말하며, 은혜와 복은 오직 (믿음)으로 받아들이는 자에게 적용됩니다." },
+                { type: 'short-answer', question: "성찬은 무엇인가요?", answer: "성찬은 예수님이 성도들에게 베풀어주시는 (거룩한 식사시간)이며, (영적 양식)을 공급해 주십니다." },
+                { type: 'short-answer', question: "세례는 무엇인가요?", answer: "세례란 성부와 성자와 성령의 이름으로 물로써 몸을 씻는 예식으로, (예수 그리스도의 피)로 영혼을 (죄)로부터 씻어내는 것을 나타냅니다." },
+                { type: 'short-answer', question: "교회를 잘 표현한 성경구절을 쓰시오.", answer: "(고전1:2) 고린도에 있는 하나님의 교회 곧 그리스도 예수 안에서 거룩하여지고 성도라 부르심을 입은 자들과 또 각처에서 우리 주 곧 저희와 우리의 주 되신 예수 그리스도의 이름을 부르는 모든 자들에게" },
+                { type: 'short-answer', question: "교회의 표지란 무엇이며 그 세 가지 요소를 설명하시오.", answer: "(1) 말씀의 바른 선포 (2) 성례의 바른 시행 (3) 징계의 바른 시행" },
+                { type: 'short-answer', question: "교회의 근본적인 사명은 무엇입니까?", answer: "예수님의 십자가와 부활의 증인이 되는 것이요(행 1:8) 또한, 모든 민족으로 제자를 삼아 아들과 아버지와 성령의 이름으로 세례를 주는 것입니다.(마28:19)" },
+                { type: 'short-answer', question: "하나님께서 인간을 창조하실 때에 다른 피조물과는 구별되는 독특한 특징이 무엇입니까?", answer: "(1) 하나님의 형상대로 창조 받음(창1:26) (2) 인간은 영과 육, 즉 영혼과 육체의 통일체로 창조됨(창2:7)" },
+                { type: 'short-answer', question: "원죄로 인해 인간에게 미친 영향과 결과는 무엇인가요?", answer: "인간과 하나님과의 관계, 인간과 다른 인간과의 관계, 인간과 자연과의 관계, 인간의 자신과의 관계등 모든 관계를 파괴하는 결과를 가져옴" },
+                { type: 'short-answer', question: "사람의 제일 되는 목적은 무엇인가?", answer: "하나님을 영화롭게 하는 것과 영원토록 하나님을 온전히 즐거워하는 것이다." },
+                { type: 'multiple-choice', question: "죽은 자가 마지막 날에 부활할 수 있는지 여부를 답하십시오.", answers: [{ text: "부활한다.", correct: true }, { text: "부활하지 못한다.", correct: false }, { text: "아무도 모른다.", correct: false }] },
+                { type: 'short-answer', question: "우리는 부활에 대하여 무엇을 믿어야 하는가?", answer: "그리스도의 영에 의해 영광스러운 몸, 썩지 아니할 신령한 몸으로 다시 살아날 것이다." },
+                { type: 'short-answer', question: "성화란 무엇인가?", answer: "구원받은 하나님의 자녀가 성령의 역사를 통하여 거룩하신 하나님의 성품을 닮아가는 과정" },
+                { type: 'short-answer', question: "재림을 기다리는 자세는 무엇인가?", answer: "(1) 재림의 시기는 아무도 모른다. (2) 항상 깨어 준비하라. (3) 적그리스도를 좇지 말라 (4) 맡은 일에 충성하면서 기다리라. (5) 거룩하고 경건함으로 간절히 사모하라." },
+            ],
+            churchHistory: [
+                // 교회사
+                { type: 'short-answer', question: "로마 제국 전역에 흩어진(디아스포라) 유대교가 초기 그리스도교 전파에 유용하게 작용한 점이 많았다. 그 중에서 디아스포라 유대인들이 남긴 구약의 헬라어 번역본의 이름은 무엇인가?", answer: "70인역(셉투아진트)" },
+                { type: 'short-answer', question: "구약의 율법적 신과 신약의 사랑의 하나님은 다른 존재이며, 구약을 모두 배제하고 누가복음과 바울 서신들만을 정경에 포함시켰던 이단의 이름은 무엇인가?", answer: "마르키온주의" },
+                { type: 'short-answer', question: "325년 로마황제 콘스탄티누스 1세가 소집하였고, 부활절 날짜 결정(춘분 후 만월 다음 첫 주일), 성부와 성자가 동일 본질임을 선언한 세계교회회의의 이름은 무엇인가?", answer: "니케아 회의" },
+                { type: 'short-answer', question: "다음 괄호 안에 들어갈 말은 무엇인가? '구약 성경의 정경화는 90년에 개최된 ( )에서 이루어졌으며, 신약 성경의 정경화는 397년에 개최된 ( )에서 이루어졌다.'", answer: "얌니아 종교회의, 카르타고 회의" },
+                { type: 'short-answer', question: "로마에서 그리스도교를 공인종교로 선언한 황제는 누구인가?", answer: "콘스탄티누스 황제" },
+                { type: 'short-answer', question: "동방교회(Greek Orthodox Church)와 서방 교회(Roman Catholic Church)가 서로를 파문하며 결별한 시기는 언제인가?", answer: "1054년" },
+                { type: 'short-answer', question: "종교개혁의 5대 원리는 무엇인가?", answer: "오직 성경, 오직 그리스도, 오직 은혜, 오직 믿음, 오직 하나님께 영광" },
+                { type: 'short-answer', question: "루터의 종교개혁 3대 원리는 무엇인가?", answer: "이신칭의, 성경의 절대 권위, 만인제사장" },
+                { type: 'short-answer', question: "칼뱅의 신학사상을 집대성한 책으로서 사도신경의 순서에 따라 제1권은 신론, 제2권은 기독론, 제3권은 성령론, 제4권은 교회론으로 구성되어 있는 책의 이름을 무엇인가?", answer: "기독교강요" },
+                { type: 'short-answer', question: "영국의 종교개혁자, 신학자이자 감리교회의 창시자로 사람들에게 종교적 체험과 성결한 생활을 역설하고, 대규모 신앙운동을 전개한 사람은 누구인가?", answer: "존 웨슬리" },
+                { type: 'short-answer', question: "한국교회가 복음을 수용한 과정에서 나타난 특징은 무엇인가?", answer: "1) 주체적이고 자발적이었다. 2) 성경을 중시했다. 3) 연합정신이 강했다. 4) 선교를 중요하게 여겼다. 5) 애국적이고 봉사정신이 강했다" },
+                { type: 'short-answer', question: "최초의 한국선교 의사인 알렌(H. V. Allen)이 세운 병원의 이름은 무엇인가?", answer: "광혜원(제중원으로 개칭, 지금의 세브란스병원)" },
+                { type: 'short-answer', question: "한국교회 성장에 많은 영향을 준 네비우스 선교정책 3가지를 쓰시오.", answer: "자진 전도, 자력 운영, 자주 치리" },
+                { type: 'short-answer', question: "3.1운동이 기독교적인 차원에서 갖는 의미를 설명하시오.", answer: "1) 한민족의 독립을 넘어 동양과 세계의 평화를 주창했다. 2) 인류의 공존을 강조하는 성숙한 모습을 보여주었다. 3) 기독교의 평화적 비폭력 저항 운동을 펼쳤다. 4) 한국교회의 민족운동과 애국적 신앙의 모습을 보여주었다" },
+            ]
+        };
+
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultScreen = document.getElementById('result-screen');
+        
+        const categoryButtons = document.querySelectorAll('.category-btn');
+        const nextButton = document.getElementById('next-button');
+        const restartButton = document.getElementById('restart-button');
+        const backToMenuButton = document.getElementById('back-to-menu');
+
+        const questionCounter = document.getElementById('question-counter');
+        const scoreDisplay = document.getElementById('score-display');
+        const questionText = document.getElementById('question-text');
+        const answerButtonsContainer = document.getElementById('answer-buttons');
+        const shortAnswerArea = document.getElementById('short-answer-area');
+        const finalScore = document.getElementById('final-score');
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let currentQuizData = [];
+        let multipleChoiceCount = 0;
+
+        // Fisher-Yates shuffle algorithm
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        categoryButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const category = button.dataset.category;
+                startQuiz(category);
+            });
+        });
+
+        nextButton.addEventListener('click', () => {
+            currentQuestionIndex++;
+            showQuestion();
+        });
+
+        restartButton.addEventListener('click', showStartScreen);
+        backToMenuButton.addEventListener('click', showStartScreen);
+
+        function showStartScreen() {
+            resultScreen.classList.add('hidden');
+            quizScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        }
+
+        function startQuiz(category) {
+            currentQuizData = [...allQuizData[category]];
+            shuffleArray(currentQuizData); // Shuffle questions
+            
+            currentQuestionIndex = 0;
+            score = 0;
+            multipleChoiceCount = currentQuizData.filter(q => q.type === 'multiple-choice').length;
+            
+            startScreen.classList.add('hidden');
+            resultScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            
+            scoreDisplay.innerText = `점수: 0`;
+            showQuestion();
+        }
+
+        function showQuestion() {
+            resetState();
+            if (currentQuestionIndex < currentQuizData.length) {
+                let currentQuestion = currentQuizData[currentQuestionIndex];
+                let questionNo = currentQuestionIndex + 1;
+                
+                questionCounter.innerText = `${questionNo} / ${currentQuizData.length}`;
+                questionText.innerHTML = currentQuestion.question.replace(/\n/g, '<br>');
+
+                if (currentQuestion.type === 'multiple-choice') {
+                    currentQuestion.answers.forEach(answer => {
+                        const button = document.createElement('button');
+                        button.innerText = answer.text;
+                        button.classList.add('w-full', 'p-4', 'rounded-lg', 'border-2', 'border-slate-200', 'text-slate-700', 'font-semibold', 'hover:bg-slate-100', 'hover:border-indigo-400', 'transition', 'text-left');
+                        if (answer.correct) {
+                            button.dataset.correct = "true";
+                        }
+                        button.addEventListener('click', selectAnswer);
+                        answerButtonsContainer.appendChild(button);
+                    });
+                } else if (currentQuestion.type === 'short-answer') {
+                    const showAnswerBtn = document.createElement('button');
+                    showAnswerBtn.innerText = '답 보기';
+                    showAnswerBtn.classList.add('bg-green-600', 'text-white', 'font-bold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-green-700', 'transition');
+                    
+                    const answerContainer = document.createElement('div');
+                    answerContainer.innerHTML = currentQuestion.answer.replace(/\n/g, '<br>');
+                    answerContainer.classList.add('hidden', 'mt-4', 'p-4', 'bg-blue-100', 'border', 'border-blue-300', 'text-blue-800', 'rounded-lg', 'text-lg', 'text-left');
+
+                    showAnswerBtn.addEventListener('click', () => {
+                        showAnswerBtn.classList.add('hidden');
+                        answerContainer.classList.remove('hidden');
+                        nextButton.classList.remove('hidden');
+                    });
+
+                    shortAnswerArea.appendChild(showAnswerBtn);
+                    shortAnswerArea.appendChild(answerContainer);
+                }
+            } else {
+                showResult();
+            }
+        }
+
+        function selectAnswer(e) {
+            const selectedBtn = e.target;
+            const isCorrect = selectedBtn.dataset.correct === "true";
+
+            if (isCorrect) {
+                score += 1;
+                scoreDisplay.innerText = `점수: ${score}`;
+            }
+
+            Array.from(answerButtonsContainer.children).forEach(button => {
+                if (button.dataset.correct === "true") {
+                    button.classList.add('bg-green-500', 'border-green-500', 'text-white');
+                } else if (button === selectedBtn) {
+                     button.classList.add('bg-red-500', 'border-red-500', 'text-white');
+                }
+                button.disabled = true;
+                button.classList.remove('hover:bg-slate-100', 'hover:border-indigo-400');
+            });
+
+            nextButton.classList.remove('hidden');
+        }
+
+        function showResult() {
+            quizScreen.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+            let resultText = `총 ${currentQuizData.length}문제 중, `;
+            if(multipleChoiceCount > 0){
+                resultText += `객관식 ${multipleChoiceCount}문제에서 ${score}개를 맞혔습니다!`;
+            } else {
+                resultText += `모든 주관식 문제를 확인했습니다.`
+            }
+            finalScore.innerText = resultText;
+        }
+
+        function resetState() {
+            nextButton.classList.add('hidden');
+            while (answerButtonsContainer.firstChild) {
+                answerButtonsContainer.removeChild(answerButtonsContainer.firstChild);
+            }
+            while (shortAnswerArea.firstChild) {
+                shortAnswerArea.removeChild(shortAnswerArea.firstChild);
+            }
+        }
+    </script>
+</body>
+</html>
