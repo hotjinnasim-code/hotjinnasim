@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>성경구절 암송 프로그램</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn/tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -229,8 +229,8 @@
 
         function updateHeader() {
             quizProgressEl.textContent = `${currentVerseIndex + 1} / ${shuffledVerses.length}`;
-            const score = shuffledVerses.length > 0 ? Math.round((correctAnswersCount / shuffledVerses.length) * 100) : 0;
-            quizScoreEl.textContent = `점수: ${score}점`;
+            // [수정된 부분 1] 백분율 점수 대신 맞춘 개수를 점수로 표시합니다.
+            quizScoreEl.textContent = `점수: ${correctAnswersCount}점`;
         }
 
         function navigateVerse(direction) {
@@ -238,15 +238,14 @@
             if (newIndex >= 0 && newIndex < shuffledVerses.length) {
                 loadVerse(newIndex);
             } else if (direction === 1 && newIndex >= shuffledVerses.length) {
-                // 마지막 문제에서 '다음'을 누르면 최종 점수 화면 표시
                 showFinalScore();
             }
         }
 
         function showFinalScore() {
             quizScreen.classList.add('hidden');
-            const finalScore = shuffledVerses.length > 0 ? Math.round((correctAnswersCount / shuffledVerses.length) * 100) : 0;
-            finalScoreEl.textContent = `최종 점수: ${finalScore}점`;
+            // [수정된 부분 2] 최종 점수도 맞춘 개수로 표시합니다.
+            finalScoreEl.textContent = `최종 점수: ${correctAnswersCount}점`;
             scoreScreen.classList.remove('hidden');
         }
 
@@ -276,7 +275,7 @@
         }
         
         function showHint() {
-            hideAnswer(); // 정답이 보이고 있다면 숨김
+            hideAnswer();
             const currentVerse = shuffledVerses[currentVerseIndex];
             hintTextEl.textContent = getConsonants(currentVerse.text);
             hintBoxEl.classList.remove('hidden');
@@ -300,7 +299,7 @@
         }
 
         function showAnswer() {
-            hideHint(); // 힌트가 보이고 있다면 숨김
+            hideHint();
             const currentVerse = shuffledVerses[currentVerseIndex];
             answerTextEl.textContent = currentVerse.text;
             answerBoxEl.classList.remove('hidden');
