@@ -21,6 +21,15 @@
         textarea::-webkit-scrollbar-track {
             background-color: #edf2f7;
         }
+        /* 음성 입력 중일 때 아이콘 애니메이션 */
+        .recording {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
@@ -66,9 +75,13 @@
                 <!-- 결과 메시지 -->
                 <p id="result-message" class="mt-2 text-center font-bold h-6"></p>
 
-                <!-- 버튼 (답 제출, 힌트, 정답 확인) -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+                <!-- 버튼 (답 제출, 음성 입력, 힌트, 정답 확인) -->
+                <div class="grid grid-cols-2 gap-4 mt-4">
                     <button onclick="checkAnswer()" class="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition-colors duration-300 shadow-sm">답 제출</button>
+                    <button id="voice-input-button" onclick="toggleVoiceInput()" class="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-colors duration-300 shadow-sm flex items-center justify-center">
+                        <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+                        <span id="voice-input-text" class="ml-2">음성 입력</span>
+                    </button>
                     <button id="hint-button" onclick="toggleHint()" class="w-full bg-gray-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-600 transition-colors duration-300 shadow-sm">힌트 보기</button>
                     <button id="show-answer-button" onclick="toggleAnswer()" class="w-full bg-teal-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-teal-600 transition-colors duration-300 shadow-sm">정답 확인</button>
                 </div>
@@ -164,6 +177,7 @@
         let isAnswerVisible = false;
         let shuffledVerses = [];
         let correctAnswersCount = 0;
+        let isRecognizing = false; // 음성 인식 상태
 
         // --- DOM 요소 ---
         const homeScreen = document.getElementById('home-screen');
@@ -181,6 +195,20 @@
         const quizProgressEl = document.getElementById('quiz-progress');
         const quizScoreEl = document.getElementById('quiz-score');
         const finalScoreEl = document.getElementById('final-score');
+        const voiceInputButton = document.getElementById('voice-input-button');
+        const voiceInputText = document.getElementById('voice-input-text');
+        const micIcon = document.getElementById('mic-icon');
+
+        // --- 음성 인식 API 설정 ---
+        window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        if (window.SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.interimResults = false;
+            recognition.lang = 'ko-KR';
+            recognition.continuous = true; // 사용자가 중지할 때까지 계속 인식
+            recognition.maxAlternatives = 1;
+        }
 
         // --- 함수 ---
 
@@ -201,6 +229,9 @@
         }
 
         function goHome() {
+            if (isRecognizing) {
+                recognition.stop();
+            }
             quizScreen.classList.add('hidden');
             scoreScreen.classList.add('hidden');
             homeScreen.classList.remove('hidden');
@@ -325,6 +356,51 @@
             }
             return result;
         }
+
+        // --- 음성 인식 함수들 ---
+        function toggleVoiceInput() {
+            if (!recognition) {
+                alert("음성 인식 기능이 지원되지 않는 브라우저입니다.");
+                return;
+            }
+            if (isRecognizing) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
+
+        if (recognition) {
+            recognition.onstart = () => {
+                isRecognizing = true;
+                voiceInputButton.classList.remove('bg-orange-500', 'hover:bg-orange-600');
+                voiceInputButton.classList.add('bg-red-500', 'hover:bg-red-600', 'recording');
+                voiceInputText.textContent = "입력 중지";
+            };
+
+            recognition.onend = () => {
+                isRecognizing = false;
+                voiceInputButton.classList.add('bg-orange-500', 'hover:bg-orange-600');
+                voiceInputButton.classList.remove('bg-red-500', 'hover:bg-red-600', 'recording');
+                voiceInputText.textContent = "음성 입력";
+            };
+
+            recognition.onresult = (event) => {
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    transcript += event.results[i][0].transcript;
+                }
+                userAnswerEl.value += transcript;
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech recognition error:", event.error);
+                if (event.error !== 'no-speech') {
+                    alert(`음성 인식 오류가 발생했습니다: ${event.error}`);
+                }
+            };
+        }
+
     </script>
 </body>
 </html>
